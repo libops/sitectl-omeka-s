@@ -30,6 +30,10 @@ func createDefinition() plugin.CreateSpec {
 
 // RegisterCommands registers Omeka S commands with the plugin SDK.
 func RegisterCommands(s *plugin.SDK) {
+	s.SetComposeProjectDiscovery(plugin.ComposeProjectDiscovery{
+		RequiredServices: []string{"omeka-s"},
+		Reason:           "omeka-s service",
+	})
 	s.AddCommand(s.GetDiscoveryMetadataCommand())
 	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
 		DefaultPath:   defaultPath,
