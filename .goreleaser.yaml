@@ -47,6 +47,11 @@ brews:
       name: homebrew
     dependencies:
       - name: "libops/homebrew/sitectl"
+      - name: "libops/homebrew/sitectl-mariadb"
+      - name: "libops/homebrew/sitectl-postgres"
+      - name: "libops/homebrew/sitectl-solr"
+      - name: "libops/homebrew/sitectl-traefik"
+      - name: "libops/homebrew/sitectl-triplet"
 nfpms:
   - id: sitectl-omeka-s
     package_name: sitectl-omeka-s
@@ -65,3 +70,8 @@ nfpms:
       - sitectl-omeka-s
     dependencies:
       - sitectl
+      - sitectl-mariadb
+      - sitectl-postgres
+      - sitectl-solr
+      - sitectl-traefik
+      - sitectl-triplet

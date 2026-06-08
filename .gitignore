@@ -5,8 +5,8 @@ bin/
 *.dll
 *.so
 *.dylib
-sitectl-isle
-sitectl-isle-*
+sitectl-omeka-s
+sitectl-omeka-s-*
 
 # Test binary, built with `go test -c`
 *.test
@@ -39,5 +39,4 @@ temp/
 # Build artifacts
 dist/
 release/
-sitectl-omeka-s
 .cache

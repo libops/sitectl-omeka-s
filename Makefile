@@ -1,4 +1,4 @@
-.PHONY: build deps test work install
+.PHONY: build deps lint test work install
 
 BINARY_NAME=sitectl-omeka-s
 
@@ -11,8 +11,12 @@ build:
 install: build
 	mv $(BINARY_NAME) /usr/local/bin
 
+lint:
+	go fmt ./...
+	golangci-lint run
+
 test: build
-	go test ./...
+	go test -v -race ./...
 
 work:
 	./scripts/use-go-work.sh

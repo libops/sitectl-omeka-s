@@ -34,8 +34,7 @@ func RegisterCommands(s *plugin.SDK) {
 		RequiredServices: []string{"omeka-s"},
 		Reason:           "omeka-s service",
 	})
-	s.AddCommand(s.GetDiscoveryMetadataCommand())
-	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
+	s.RegisterStandardComposeTemplate(createDefinition(), plugin.StandardComposeTemplateOptions{
 		DefaultPath:   defaultPath,
 		DefaultPlugin: pluginName,
 		ReadyMessage:  "Omeka S is ready for use through sitectl.",

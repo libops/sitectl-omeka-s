@@ -3,13 +3,13 @@ module github.com/libops/sitectl-omeka-s
 go 1.26.1
 
 require (
-	github.com/libops/sitectl v0.17.1
+	github.com/libops/sitectl v0.17.4
 	github.com/spf13/cobra v1.10.2
 )
 
 require (
 	charm.land/bubbles/v2 v2.1.0 // indirect
-	charm.land/bubbletea/v2 v2.0.6 // indirect
+	charm.land/bubbletea/v2 v2.0.7 // indirect
 	charm.land/fang/v2 v2.0.1 // indirect
 	charm.land/lipgloss/v2 v2.0.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
