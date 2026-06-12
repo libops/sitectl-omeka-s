@@ -20,6 +20,7 @@ func main() {
 		Description:  "Omeka S helpers",
 		Author:       "libops",
 		TemplateRepo: "https://github.com/libops/omeka-s",
+		Includes:     cmd.IncludedPlugins(),
 	})
 
 	cmd.RegisterCommands(sdk)

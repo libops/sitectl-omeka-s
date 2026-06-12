@@ -7,7 +7,6 @@ const (
 	createBranch = "main"
 	pluginName   = "omeka-s"
 	defaultPath  = "./omeka-s"
-	displayName  = "Omeka S"
 )
 
 func createDefinition() plugin.CreateSpec {
@@ -34,12 +33,11 @@ func RegisterCommands(s *plugin.SDK) {
 		RequiredServices: []string{"omeka-s"},
 		Reason:           "omeka-s service",
 	})
-	s.AddCommand(s.GetDiscoveryMetadataCommand())
-	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
+	s.RegisterComposeTemplateCreateRunner(createDefinition(), plugin.ComposeTemplateCreateOptions{
 		DefaultPath:   defaultPath,
 		DefaultPlugin: pluginName,
 		ReadyMessage:  "Omeka S is ready for use through sitectl.",
-		DisplayName:   displayName,
 	})
+	s.RegisterHealthcheckRunner(omekaSHealthcheckRunner{})
 	registerOmekaSCommands(s)
 }

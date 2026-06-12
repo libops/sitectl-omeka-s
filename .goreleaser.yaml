@@ -47,6 +47,7 @@ brews:
       name: homebrew
     dependencies:
       - name: "libops/homebrew/sitectl"
+      - name: "libops/homebrew/sitectl-triplet"
 nfpms:
   - id: sitectl-omeka-s
     package_name: sitectl-omeka-s
