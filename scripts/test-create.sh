@@ -50,9 +50,11 @@ build_plugin() {
 
 create_site() {
 	local target="${PLUGIN_NAME}/${CREATE_DEFINITION}"
-	local extra_args=()
+	local extra_args=(--tag omeka-s=nginx-1.30.3-php84)
 	if [ -n "${CREATE_ARGS}" ]; then
-		read -r -a extra_args <<< "${CREATE_ARGS}"
+		local create_args=()
+		read -r -a create_args <<< "${CREATE_ARGS}"
+		extra_args+=("${create_args[@]}")
 	fi
 
 	HOME="${SITECTL_HOME}" sitectl create "${target}" \
