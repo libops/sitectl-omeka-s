@@ -28,15 +28,18 @@ func createDefinition() plugin.CreateSpec {
 			"docker compose pull --ignore-buildable",
 			"docker compose build --pull",
 		},
+		Images: []plugin.ComposeImageSpec{
+			{Service: "omeka-s", Image: "libops/omeka-s:nginx-1.30.3-php84", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+		},
 		DockerComposeInit: []string{
-			"docker compose pull --ignore-buildable",
-			"docker compose build --pull",
 			"docker compose run --rm init",
 		},
+		InitArtifacts: []plugin.InitArtifact{
+			{Path: "secrets/DB_ROOT_PASSWORD"},
+			{Path: "secrets/OMEKA_S_DB_PASSWORD"},
+			{Path: "secrets/OMEKA_S_ADMIN_PASSWORD"},
+		},
 		DockerComposeUp: []string{
-			"docker compose pull --ignore-buildable",
-			"docker compose build --pull",
-			"./scripts/init-if-needed.sh",
 			"docker compose up --remove-orphans -d",
 		},
 		DockerComposeDown:    []string{"docker compose down"},
