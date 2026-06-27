@@ -16,19 +16,31 @@ const (
 
 func createDefinition() plugin.CreateSpec {
 	return plugin.CreateSpec{
-		Name:                 "default",
-		Description:          "Create an Omeka S stack",
-		Default:              true,
-		MinCPUCores:          2,
-		MinMemory:            "4 GiB",
-		MinDiskSpace:         "20 GiB",
-		DockerComposeRepo:    createRepo,
-		DockerComposeBranch:  createBranch,
-		DockerComposeBuild:   []string{"make build"},
-		DockerComposeInit:    []string{"make init"},
-		DockerComposeUp:      []string{"make up"},
-		DockerComposeDown:    []string{"make down"},
-		DockerComposeRollout: []string{"make rollout"},
+		Name:                "default",
+		Description:         "Create an Omeka S stack",
+		Default:             true,
+		MinCPUCores:         2,
+		MinMemory:           "4 GiB",
+		MinDiskSpace:        "20 GiB",
+		DockerComposeRepo:   createRepo,
+		DockerComposeBranch: createBranch,
+		DockerComposeBuild: []string{
+			"docker compose pull --ignore-buildable",
+			"docker compose build --pull",
+		},
+		DockerComposeInit: []string{
+			"docker compose pull --ignore-buildable",
+			"docker compose build --pull",
+			"docker compose run --rm init",
+		},
+		DockerComposeUp: []string{
+			"docker compose pull --ignore-buildable",
+			"docker compose build --pull",
+			"./scripts/init-if-needed.sh",
+			"docker compose up --remove-orphans -d",
+		},
+		DockerComposeDown:    []string{"docker compose down"},
+		DockerComposeRollout: []string{"./scripts/rollout.sh"},
 	}
 }
 
