@@ -1,6 +1,6 @@
 # sitectl-omeka-s
 
-`sitectl-omeka-s` adds Omeka S create metadata, lifecycle operations, API helpers, resource shortcuts, module maintenance, validation, and health checks to [`sitectl`](https://sitectl.libops.io). It works with the [LibOps Omeka S template](https://github.com/libops/omeka-s).
+`sitectl-omeka-s` simplifies the creation and operation of repositories created using the [LibOps Omeka S template](https://github.com/libops/omeka-s). It provides sitectl commands for the Omeka S API, resource shortcuts, module maintenance, validation, and health checks.
 
 Documentation: https://sitectl.libops.io/plugins/omeka-s
 
