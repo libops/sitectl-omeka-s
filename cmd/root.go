@@ -39,6 +39,10 @@ func createDefinition() plugin.CreateSpec {
 			{Path: "secrets/OMEKA_S_DB_PASSWORD"},
 			{Path: "secrets/OMEKA_S_ADMIN_PASSWORD"},
 		},
+		InitVolumes: []plugin.InitVolume{
+			{Name: "mariadb-data"},
+			{Name: "omeka-s-files"},
+		},
 		DockerComposeUp: []string{
 			"docker compose up --remove-orphans -d",
 		},
