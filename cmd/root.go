@@ -26,7 +26,7 @@ func createDefinition() plugin.CreateSpec {
 		DockerComposeBranch: createBranch,
 		DockerComposeBuild: []string{
 			"docker compose pull --ignore-buildable",
-			"docker compose build --pull",
+			"docker compose build",
 		},
 		Images: []plugin.ComposeImageSpec{
 			{Service: "omeka-s", Image: "libops/omeka-s:nginx-1.30.3-php84", BuildPolicy: plugin.BuildPolicyIfNotPresent},
