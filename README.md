@@ -49,7 +49,8 @@ sitectl image set --tag omeka-s=nginx-1.30.3-php84
 Use [`sitectl set`](https://sitectl.libops.io/commands/set) and [`sitectl converge`](https://sitectl.libops.io/commands/converge) for component changes:
 
 ```bash
-sitectl set upload-limits enabled --max-upload-size 2G --upload-timeout 10m
+sitectl set ingress enabled --mode https-default --domain omeka-s.localhost
+sitectl set ingress enabled --trusted-ip 203.0.113.10/32 --max-upload-size 2G --upload-timeout 10m
 sitectl converge
 ```
 
