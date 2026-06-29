@@ -50,7 +50,7 @@ build_plugin() {
 
 create_site() {
 	local target="${PLUGIN_NAME}/${CREATE_DEFINITION}"
-	local extra_args=(--tag omeka-s=nginx-1.30.3-php84)
+	local extra_args=(--setup-only)
 	if [ -n "${CREATE_ARGS}" ]; then
 		local create_args=()
 		read -r -a create_args <<< "${CREATE_ARGS}"
@@ -63,6 +63,9 @@ create_site() {
 		--checkout-source template \
 		--default-context \
 		"${extra_args[@]}"
+
+	HOME="${SITECTL_HOME}" sitectl image set --tag omeka-s=nginx-1.30.3-php84
+	HOME="${SITECTL_HOME}" sitectl compose up
 }
 
 run_healthcheck() {
