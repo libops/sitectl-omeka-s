@@ -69,6 +69,12 @@ func RegisterCommands(s *plugin.SDK) {
 	})
 	registerApplicationComponents(s, "Omeka S", "omeka-s")
 	s.RegisterHealthcheckRunner(omekaSHealthcheckRunner)
+	s.RegisterIngressRouteProvider(plugin.StandardComposeWebIngressRoutesWithOptions(plugin.StandardComposeWebIngressOptions{
+		AppService:      "omeka-s",
+		Router:          "omeka-s-web",
+		DomainVariables: []string{"DOMAIN"},
+		HTTPSVariables:  []string{"OMEKA_S_ENABLE_HTTPS"},
+	}))
 	registerOmekaSCommands(s)
 }
 
