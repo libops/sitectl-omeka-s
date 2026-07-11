@@ -43,15 +43,16 @@ sitectl validate
 Use [`sitectl image`](https://sitectl.libops.io/commands/image) for local image or build-arg overrides:
 
 ```bash
-sitectl image set --tag omeka-s=nginx-1.30.3-php84
+sitectl image set --tag omeka-s=4.2.1-php84
 ```
 
-Use [`sitectl set`](https://sitectl.libops.io/commands/set) and [`sitectl converge`](https://sitectl.libops.io/commands/converge) for component changes:
+The plugin intentionally does not register broad development bind mounts: mounting all modules or themes would hide extensions bundled in the versioned base image. Add custom extensions through the downstream build or an explicit per-extension override.
+
+Use [`sitectl set`](https://sitectl.libops.io/commands/set) for component changes; it updates component-owned files immediately:
 
 ```bash
 sitectl set ingress enabled --mode https-custom --domain omeka-s.localhost
 sitectl set ingress enabled --trusted-ip 203.0.113.10/32 --max-upload-size 2G --upload-timeout 10m
-sitectl converge
 ```
 
 See the [Omeka S plugin docs](https://sitectl.libops.io/plugins/omeka-s) for lifecycle operations, API helpers, resource shortcuts, and module maintenance.

@@ -64,7 +64,16 @@ create_site() {
 		--default-context \
 		"${extra_args[@]}"
 
-	HOME="${SITECTL_HOME}" sitectl image set --tag omeka-s=nginx-1.30.3-php84
+	HOME="${SITECTL_HOME}" sitectl image set --tag omeka-s=4.2.1-php84
+	(
+		cd "${SITE_DIR}"
+		docker compose config --format json |
+			jq -e '.services["omeka-s"].build.args.BASE_IMAGE == "libops/omeka-s:4.2.1-php84"' >/dev/null
+	)
+	if grep -q '^[[:space:]]*image:' "${SITE_DIR}/docker-compose.override.yml"; then
+		echo "buildable Omeka S override unexpectedly wrote an image field" >&2
+		return 1
+	fi
 	HOME="${SITECTL_HOME}" sitectl compose up
 }
 
