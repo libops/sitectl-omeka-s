@@ -48,6 +48,21 @@ build_plugin() {
 	command -v "${PLUGIN_BINARY}" >/dev/null
 }
 
+assert_template_lock() {
+	local lock="${SITE_DIR}/.libops/template.lock.yaml"
+	if [ -L "${lock}" ] || [ ! -f "${lock}" ]; then
+		echo "sitectl create did not retain a regular template provenance lock" >&2
+		return 1
+	fi
+	test "$(stat -c '%a' "${lock}")" = "644"
+	grep -Fxq 'apiVersion: sitectl.libops.io/v1alpha1' "${lock}"
+	grep -Fxq 'kind: TemplateLock' "${lock}"
+	grep -Eq '^    commit: [0-9a-f]{40}([0-9a-f]{24})?$' "${lock}"
+	grep -Fxq "    repository: https://github.com/libops/${PLUGIN_NAME}" "${lock}"
+	grep -Eq '^        digest: sha256:[0-9a-f]{64}$' "${lock}"
+	grep -Fxq '    revision: v1.0.0' "${lock}"
+}
+
 create_site() {
 	local target="${PLUGIN_NAME}/${CREATE_DEFINITION}"
 	local extra_args=(--setup-only)
@@ -63,6 +78,7 @@ create_site() {
 		--checkout-source template \
 		--default-context \
 		"${extra_args[@]}"
+	assert_template_lock
 
 	HOME="${SITECTL_HOME}" sitectl image set --tag omeka-s=4.2.1-php84
 	(
