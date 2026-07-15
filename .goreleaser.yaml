@@ -1,7 +1,7 @@
 version: 2
 before:
   hooks:
-    - ./scripts/check-sitectl-core-version.sh v0.39.0
+    - ./scripts/check-sitectl-core-version.sh v0.40.0
     - go mod tidy
 builds:
   - binary: sitectl-omeka-s
@@ -70,10 +70,10 @@ nfpms:
     overrides:
       deb:
         dependencies:
-          - sitectl (>= 0.39.0)
+          - sitectl (>= 0.40.0)
       rpm:
         dependencies:
-          - sitectl >= 0.39.0
+          - sitectl >= 0.40.0
       apk:
         dependencies:
-          - sitectl>=0.39.0
+          - sitectl>=0.40.0
