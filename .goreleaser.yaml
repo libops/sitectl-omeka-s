@@ -43,6 +43,7 @@ brews:
   - name: sitectl-omeka-s
     description: "A sitectl plugin for Omeka S stacks"
     homepage: "https://github.com/libops/sitectl-omeka-s"
+    url_template: "https://github.com/libops/sitectl-omeka-s/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     license: MIT
     commit_author:
       name: sitectl-dev[bot]
