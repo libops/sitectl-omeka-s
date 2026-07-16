@@ -6,7 +6,7 @@ Documentation: https://sitectl.libops.io/plugins/omeka-s
 
 ## Requirements
 
-- [`sitectl`](https://sitectl.libops.io/install).
+- Stable [`sitectl`](https://sitectl.libops.io/install) v1.0.0 or newer; this plugin uses RPC protocol 1.
 - Docker with the Compose v2 plugin for local Omeka S sites.
 - No additional app-plugin dependency beyond core `sitectl`.
 

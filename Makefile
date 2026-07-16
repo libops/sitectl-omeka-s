@@ -1,4 +1,4 @@
-.PHONY: build deps lint test work install integration-test
+.PHONY: build check-core-version deps lint test work install integration-test
 
 BINARY_NAME=sitectl-omeka-s
 CREATE_DEFINITION?=default
@@ -18,7 +18,10 @@ lint:
 	go fmt ./...
 	golangci-lint run
 
-test: build
+check-core-version:
+	./scripts/check-sitectl-core-version.sh v1.0.0
+
+test: check-core-version build
 	go test -v -race ./...
 
 work:
