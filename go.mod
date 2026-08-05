@@ -3,7 +3,7 @@ module github.com/libops/sitectl-omeka-s
 go 1.26.1
 
 require (
-	github.com/libops/sitectl v1.5.0
+	github.com/libops/sitectl v1.7.0
 	github.com/spf13/cobra v1.10.2
 )
 
@@ -39,6 +39,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kr/fs v0.1.0 // indirect
+	github.com/lrstanley/bubblezone/v2 v2.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
