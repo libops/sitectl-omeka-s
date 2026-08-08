@@ -19,7 +19,7 @@ const (
 	omekaSService          = "omeka-s"
 	omekaSRoot             = "/var/www/omeka-s"
 	omekaSExpectedVersion  = "4.2.1"
-	omekaSDatabaseProbe    = `. /usr/local/share/libops/database.sh; database_mariadb_with_password "$DB_PASSWORD" --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --batch --skip-column-names --execute="SELECT CURRENT_USER();"`
+	omekaSDatabaseProbe    = `. /usr/local/share/libops/database.sh; mapfile -d '' -t database < <(php -r '$config = parse_ini_file("config/database.ini", false, INI_SCANNER_RAW); foreach (["host", "port", "user", "password", "dbname"] as $key) { $value = $config[$key] ?? ""; if (!is_string($value) || $value === "") { fwrite(STDERR, "config/database.ini " . $key . " is empty\n"); exit(2); } fwrite(STDOUT, $value . "\0"); }'); if [ "${#database[@]}" -ne 5 ]; then printf '%s\n' 'could not read database credentials from config/database.ini' >&2; exit 2; fi; database_mariadb_with_password "${database[3]}" --host="${database[0]}" --port="${database[1]}" --user="${database[2]}" --database="${database[4]}" --batch --skip-column-names --execute="SELECT CURRENT_USER();"`
 	omekaSReadOnlyStorage  = `test -r /var/www/omeka-s/files && test -w /var/www/omeka-s/files && printf '%s\n' 'storage writable'`
 	omekaSStorageRoundTrip = `probe=/var/www/omeka-s/files/.sitectl-verify-$$; cleanup() { rm -f -- "$probe"; }; trap cleanup EXIT INT TERM; printf '%s' sitectl-verify >"$probe"; test "$(cat "$probe")" = sitectl-verify; cleanup; trap - EXIT INT TERM; printf '%s\n' 'storage round trip complete'`
 )

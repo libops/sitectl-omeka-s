@@ -43,7 +43,7 @@ sitectl verify --strict
 
 ## Behavioral verification
 
-`sitectl verify --strict` checks the running Omeka S version, scoped MariaDB identity, current `/admin` migration redirect, sites API collection shape, and files-volume access. Production verification is read-only.
+`sitectl verify --strict` checks the running Omeka S version, scoped MariaDB identity, current `/admin` migration redirect, sites API collection shape, and files-volume access. The database probe reads the connection selected by the rendered `config/database.ini`; its password stays inside the container and is never copied into Docker process arguments or verifier output. Production verification is read-only.
 
 Disposable CI may add a reversible service-account file write/read/delete probe:
 

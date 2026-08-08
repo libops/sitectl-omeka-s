@@ -83,6 +83,21 @@ func TestOmekaSVerifyRejectsRootDatabaseIdentity(t *testing.T) {
 	}
 }
 
+func TestOmekaSVerifyDatabaseProbeUsesRenderedConfiguration(t *testing.T) {
+	t.Parallel()
+
+	for _, required := range []string{"parse_ini_file(\"config/database.ini\"", "INI_SCANNER_RAW", "database_mariadb_with_password", "${database[3]}"} {
+		if !strings.Contains(omekaSDatabaseProbe, required) {
+			t.Fatalf("database probe does not read %q from rendered configuration: %s", required, omekaSDatabaseProbe)
+		}
+	}
+	for _, forbidden := range []string{"$DB_HOST", "$DB_PORT", "$DB_USER", "$DB_PASSWORD", "$DB_NAME"} {
+		if strings.Contains(omekaSDatabaseProbe, forbidden) {
+			t.Fatalf("database probe still depends on application environment %q: %s", forbidden, omekaSDatabaseProbe)
+		}
+	}
+}
+
 func TestOmekaSVerifyDisposableModeUsesReversibleFilesProbe(t *testing.T) {
 	t.Parallel()
 
