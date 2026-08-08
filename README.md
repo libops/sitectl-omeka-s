@@ -6,7 +6,7 @@ Documentation: https://sitectl.libops.io/plugins/omeka-s
 
 ## Requirements
 
-- Stable [`sitectl`](https://sitectl.libops.io/install) v1.0.0 or newer; this plugin uses RPC protocol 1.
+- [`sitectl`](https://sitectl.libops.io/install) v1.7.0 or newer provides the RPC verifier SDK; promotion must pin the first core release that also includes `verify --strict` semantics.
 - Docker with the Compose v2 plugin for local Omeka S sites.
 - No additional app-plugin dependency beyond core `sitectl`.
 
@@ -38,7 +38,20 @@ Use [`sitectl healthcheck`](https://sitectl.libops.io/commands/healthcheck) and 
 ```bash
 sitectl healthcheck
 sitectl validate
+sitectl verify --strict
 ```
+
+## Behavioral verification
+
+`sitectl verify --strict` checks the running Omeka S version, scoped MariaDB identity, current `/admin` migration redirect, sites API collection shape, and files-volume access. Production verification is read-only.
+
+Disposable CI may add a reversible service-account file write/read/delete probe:
+
+```bash
+sitectl verify --strict --disposable
+```
+
+Never use `--disposable` for a retained customer site. Rollout branch tests execute the app-only start, migration-required stop, post-operator retry, and final full-stack start through the Docker command boundary. Hosted acceptance must still exercise a real prior-version database/files fixture, browser migration, public DNS/TLS, mail delivery, admin login, authenticated API mutation, and media retrieval.
 
 Use [`sitectl image`](https://sitectl.libops.io/commands/image) for local image or build-arg overrides:
 

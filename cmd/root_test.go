@@ -182,6 +182,85 @@ func TestManualMigrationStopsBeforeFullStackStart(t *testing.T) {
 	}
 }
 
+func TestManualMigrationRolloutEndToEndBranches(t *testing.T) {
+	t.Parallel()
+	commands := createDefinition().DockerComposeRollout[4:]
+
+	t.Run("current database opens full stack", func(t *testing.T) {
+		t.Parallel()
+		env, logPath := installRolloutStubs(t, "302 http://127.0.0.1/admin/login", 0)
+		output, exitCode := runRolloutBranch(t, commands, env)
+		if exitCode != 0 {
+			t.Fatalf("current rollout exit = %d, want 0; output:\n%s", exitCode, output)
+		}
+		assertAppThenFullStackStart(t, logPath, "omeka-s")
+	})
+
+	t.Run("required migration blocks then completed migration recovers", func(t *testing.T) {
+		t.Parallel()
+		env, logPath := installRolloutStubs(t, "302 http://127.0.0.1/migrate", 0)
+		output, exitCode := runRolloutBranch(t, commands, env)
+		if exitCode != 10 || !strings.Contains(string(output), "ACTION REQUIRED") {
+			t.Fatalf("migration-required rollout exit = %d, want 10; output:\n%s", exitCode, output)
+		}
+		before, err := os.ReadFile(logPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(before), "up --remove-orphans --wait --wait-timeout 600") {
+			t.Fatalf("full stack opened before migration completion:\n%s", before)
+		}
+
+		env = replaceRolloutEnv(env, "FAKE_CURL_BODY", "302 http://127.0.0.1/admin/login")
+		output, exitCode = runRolloutBranch(t, commands, env)
+		if exitCode != 0 {
+			t.Fatalf("post-migration rollout exit = %d, want 0; output:\n%s", exitCode, output)
+		}
+		assertAppThenFullStackStart(t, logPath, "omeka-s")
+	})
+}
+
+func runRolloutBranch(t *testing.T, commands []string, env []string) ([]byte, int) {
+	t.Helper()
+	var combined []byte
+	for _, commandText := range commands {
+		command := exec.Command("bash", "-c", commandText)
+		command.Env = env
+		output, err := command.CombinedOutput()
+		combined = append(combined, output...)
+		if err != nil {
+			return combined, commandExitCode(t, err)
+		}
+	}
+	return combined, 0
+}
+
+func replaceRolloutEnv(env []string, key, value string) []string {
+	updated := append([]string{}, env...)
+	prefix := key + "="
+	for index, item := range updated {
+		if strings.HasPrefix(item, prefix) {
+			updated[index] = prefix + value
+			return updated
+		}
+	}
+	return append(updated, prefix+value)
+}
+
+func assertAppThenFullStackStart(t *testing.T, logPath, service string) {
+	t.Helper()
+	calls, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := string(calls)
+	appStart := strings.LastIndex(log, "up --remove-orphans --pull missing --quiet-pull -d "+service)
+	fullStart := strings.LastIndex(log, "up --remove-orphans --wait --wait-timeout 600 --pull missing --quiet-pull -d")
+	if appStart == -1 || fullStart == -1 || appStart >= fullStart {
+		t.Fatalf("rollout did not keep app-only inspection before full-stack start:\n%s", log)
+	}
+}
+
 func commandExitCode(t *testing.T, err error) int {
 	t.Helper()
 	if err == nil {
