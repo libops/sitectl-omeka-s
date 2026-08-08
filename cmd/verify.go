@@ -48,7 +48,7 @@ func (r *omekaSVerifyRunner) BindFlags(cmd *cobra.Command) {
 
 func (r *omekaSVerifyRunner) Run(cmd *cobra.Command, _ *config.Context) ([]sitevalidate.Result, error) {
 	if r.sdk == nil {
-		return nil, fmt.Errorf("Omeka S verifier SDK is not initialized")
+		return nil, fmt.Errorf("verifier SDK for Omeka S is not initialized")
 	}
 	verifyContext, err := r.sdk.GetContext()
 	if err != nil {
