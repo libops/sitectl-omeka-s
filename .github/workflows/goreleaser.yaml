@@ -63,4 +63,4 @@ jobs:
       release-mode: ${{ github.ref_type == 'tag' && 'full' || inputs.release-mode }}
       release-version: ${{ inputs.release-version }}
       package-name: sitectl-omeka-s
-      sitectl-ref: cc1ad89c484a9c449750e98ed229a338e8dcfc52 # v1.7.0
+      sitectl-ref: 38514889a3c316bf9edfd50a4c7c543805c2076f # v1.8.2

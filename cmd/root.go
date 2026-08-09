@@ -8,7 +8,7 @@ import (
 
 const (
 	createRepo   = "https://github.com/libops/omeka-s"
-	createBranch = "v1.0.0"
+	createBranch = omekaSTemplateVersion
 	pluginName   = "omeka-s"
 	defaultPath  = "./omeka-s"
 )
@@ -33,6 +33,7 @@ func createDefinition() plugin.CreateSpec {
 		DockerComposeInit: []string{
 			"mkdir -p ./secrets",
 			"docker compose run --rm init",
+			omekaSRolloutPreflightCommand,
 		},
 		InitArtifacts: []plugin.InitArtifact{
 			{Path: "secrets/DB_ROOT_PASSWORD"},
@@ -53,8 +54,8 @@ func createDefinition() plugin.CreateSpec {
 			"mkdir -p ./secrets",
 			"docker compose run --rm init",
 			"docker compose up --remove-orphans --pull missing --quiet-pull -d omeka-s",
-			"docker compose exec -T omeka-s sh -c 'started=$(date +%s) || exit 1; deadline=$((started + 600)); until test -f /installed && curl --connect-timeout 2 --max-time 5 -fsS http://127.0.0.1/status | grep -q pool; do now=$(date +%s) || exit 1; if [ \"$now\" -ge \"$deadline\" ]; then echo \"Omeka S did not become ready for migration inspection within 10 minutes\" >&2; exit 1; fi; sleep 2; done'",
-			"docker compose exec -T omeka-s sh -c 'result=$(curl --connect-timeout 2 --max-time 30 -sS -o /dev/null -w \"%{http_code} %{redirect_url}\" http://127.0.0.1/admin) || { status=$?; echo \"Unable to inspect Omeka S migration state (curl status $status)\" >&2; exit \"$status\"; }; code=${result%% *}; redirect=${result#* }; case \"$code\" in 200|301|302|303|307|308) ;; *) echo \"Unexpected Omeka S admin response: $code\" >&2; exit 3 ;; esac; case \"$redirect\" in */migrate|*/migrate/) printf \"%s\\n\" \"ACTION REQUIRED: Omeka S requires its supported browser migration. Public Traefik remains stopped. Run sitectl port-forward 8080:omeka-s:80, open http://localhost:8080/admin, complete the migration, stop the forward, and rerun sitectl deploy --skip-git --no-pull. If this deploy selected a non-active context, pass the same --context NAME to both sitectl commands.\" >&2; exit 10 ;; esac'",
+			"docker compose exec -T omeka-s " + omekaSRolloutReadinessTarget,
+			"docker compose exec -T omeka-s " + omekaSMigrationGateTarget,
 			"docker compose up --remove-orphans --wait --wait-timeout 600 --pull missing --quiet-pull -d",
 		},
 	}
@@ -74,6 +75,7 @@ func RegisterCommands(s *plugin.SDK) {
 	registerApplicationComponents(s, "Omeka S", "omeka-s")
 	s.RegisterHealthcheckRunner(omekaSHealthcheckRunner)
 	s.RegisterVerifyRunner(&omekaSVerifyRunner{sdk: s})
+	s.RegisterDeployRunner(omekaSDeployDefinition(), &omekaSDeployRunner{sdk: s})
 	s.RegisterIngressRouteProvider(plugin.StandardComposeWebIngressRoutesWithOptions(plugin.StandardComposeWebIngressOptions{
 		AppService: "omeka-s",
 		Router:     "omeka-s-web",

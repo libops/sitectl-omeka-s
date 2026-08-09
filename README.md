@@ -6,9 +6,10 @@ Documentation: https://sitectl.libops.io/plugins/omeka-s
 
 ## Requirements
 
-- [`sitectl`](https://sitectl.libops.io/install) v1.7.0 or newer provides the RPC verifier SDK; promotion must pin the first core release that also includes `verify --strict` semantics.
+- [`sitectl`](https://sitectl.libops.io/install) v1.8.2 or newer provides strict verification and deploy lifecycle hooks.
 - Docker with the Compose v2 plugin for local Omeka S sites.
 - No additional app-plugin dependency beyond core `sitectl`.
+- Omeka S template v1.2.0 or newer provides the versioned runtime programs required by `sitectl-omeka-s` v1.3.0 and newer.
 
 ## Quick Start
 
@@ -45,13 +46,15 @@ sitectl verify --strict
 
 `sitectl verify --strict` checks the running Omeka S version, scoped MariaDB identity, current `/admin` migration redirect, sites API collection shape, and files-volume access. The database probe reads the connection selected by the rendered `config/database.ini`; its password stays inside the container and is never copied into Docker process arguments or verifier output. Production verification is read-only.
 
+Use `sitectl deploy` for application updates. Before stopping the current containers, the plugin checks that the site contains the matching template's rollout and verification programs and mounts each one read-only at its stable container path. A checkout older than template v1.2.0 fails with migration guidance before the outage; there is no inline fallback whose behavior could differ from the reviewed checkout.
+
 Disposable CI may add a reversible service-account file write/read/delete probe:
 
 ```bash
 sitectl verify --strict --disposable
 ```
 
-Never use `--disposable` for a retained customer site. Rollout branch tests execute the app-only start, migration-required stop, post-operator retry, and final full-stack start through the Docker command boundary. Hosted acceptance must still exercise a real prior-version database/files fixture, browser migration, public DNS/TLS, mail delivery, admin login, authenticated API mutation, and media retrieval.
+Never use `--disposable` for a retained customer site. The checked-in migration gate keeps public Traefik stopped until the supported browser migration is complete. Hosted acceptance must still exercise a real prior-version database/files fixture, browser migration, public DNS/TLS, mail delivery, admin login, authenticated API mutation, and media retrieval.
 
 Use [`sitectl image`](https://sitectl.libops.io/commands/image) for local image or build-arg overrides:
 

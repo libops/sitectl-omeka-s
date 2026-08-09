@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -10,36 +11,42 @@ import (
 )
 
 type fakeOmekaSVerifyRuntime struct {
-	run func([]string) (string, error)
+	run   func([]string) (string, error)
+	calls [][]string
 }
 
-func (f fakeOmekaSVerifyRuntime) ExecCapture(_ context.Context, argv []string) (string, error) {
+func (f *fakeOmekaSVerifyRuntime) ExecCapture(_ context.Context, argv []string) (string, error) {
+	f.calls = append(f.calls, append([]string(nil), argv...))
 	return f.run(argv)
 }
 
 func TestOmekaSVerifyChecksApplicationBehavior(t *testing.T) {
 	t.Parallel()
 
-	runtime := fakeOmekaSVerifyRuntime{run: func(argv []string) (string, error) {
-		joined := strings.Join(argv, " ")
+	runtime := &fakeOmekaSVerifyRuntime{run: func(argv []string) (string, error) {
 		switch {
-		case strings.Contains(joined, "Omeka\\Module::VERSION"):
+		case argv[0] == "test":
+			return "", nil
+		case reflect.DeepEqual(argv, []string{"php", omekaSVersionTarget}):
 			return "4.2.1", nil
-		case strings.Contains(joined, "SELECT CURRENT_USER()"):
+		case reflect.DeepEqual(argv, []string{omekaSVerifyDatabaseTarget}):
 			return "omeka_s@%", nil
-		case strings.Contains(joined, "-w") && strings.Contains(joined, "/admin"):
+		case argv[0] == "curl" && strings.Contains(argv[len(argv)-1], "/admin"):
 			return "302 http://127.0.0.1/admin/login", nil
-		case strings.Contains(joined, "/api/sites"):
+		case argv[0] == "curl" && strings.Contains(argv[len(argv)-1], "/api/sites"):
 			return `[{"o:id":1,"o:title":"Museum"}]`, nil
-		case strings.Contains(joined, "test -w"):
+		case reflect.DeepEqual(argv, []string{"s6-setuidgid", "nginx", omekaSVerifyStorageTarget, omekaSStorageReadOnlyMode}):
 			return "storage writable", nil
 		default:
-			return "", errors.New("unexpected command: " + joined)
+			return "", errors.New("unexpected command: " + strings.Join(argv, " "))
 		}
 	}}
 
 	results := runOmekaSVerifyChecks(context.Background(), runtime, false)
 	assertAllOmekaSVerifyOK(t, results, 5)
+	if len(runtime.calls) != len(omekaSTemplatePrograms)+5 {
+		t.Fatalf("verification calls = %d, want %d: %+v", len(runtime.calls), len(omekaSTemplatePrograms)+5, runtime.calls)
+	}
 }
 
 func TestOmekaSVerifyFailsClosedOnMigrationRedirect(t *testing.T) {
@@ -83,50 +90,77 @@ func TestOmekaSVerifyRejectsRootDatabaseIdentity(t *testing.T) {
 	}
 }
 
-func TestOmekaSVerifyDatabaseProbeUsesRenderedConfiguration(t *testing.T) {
+func TestOmekaSVerifyUsesCheckedInDatabasePrograms(t *testing.T) {
 	t.Parallel()
 
-	for _, required := range []string{"parse_ini_file(\"config/database.ini\"", "INI_SCANNER_RAW", "database_mariadb_with_password", "${database[3]}"} {
-		if !strings.Contains(omekaSDatabaseProbe, required) {
-			t.Fatalf("database probe does not read %q from rendered configuration: %s", required, omekaSDatabaseProbe)
-		}
+	programs := map[string]string{
+		omekaSDatabaseConfigSource: omekaSDatabaseConfigTarget,
+		omekaSVerifyDatabaseSource: omekaSVerifyDatabaseTarget,
+		omekaSVerifySQLSource:      omekaSVerifySQLTarget,
 	}
-	for _, forbidden := range []string{"$DB_HOST", "$DB_PORT", "$DB_USER", "$DB_PASSWORD", "$DB_NAME"} {
-		if strings.Contains(omekaSDatabaseProbe, forbidden) {
-			t.Fatalf("database probe still depends on application environment %q: %s", forbidden, omekaSDatabaseProbe)
+	if len(programs) != 3 {
+		t.Fatalf("unexpected database program contract: %+v", programs)
+	}
+	for source, target := range programs {
+		if !strings.HasPrefix(source, "scripts/") || !strings.HasPrefix(target, "/usr/local/") {
+			t.Fatalf("database program is not a checked-in stable-path mapping: %s -> %s", source, target)
 		}
 	}
 }
 
-func TestOmekaSVerifyDisposableModeUsesReversibleFilesProbe(t *testing.T) {
+func TestOmekaSVerifyDisposableModeUsesVersionedStorageProgram(t *testing.T) {
 	t.Parallel()
 
-	var storageCommand string
-	runtime := fakeOmekaSVerifyRuntime{run: func(argv []string) (string, error) {
-		joined := strings.Join(argv, " ")
+	var storageCommand []string
+	runtime := &fakeOmekaSVerifyRuntime{run: func(argv []string) (string, error) {
 		switch {
-		case strings.Contains(joined, "Omeka\\Module::VERSION"):
+		case argv[0] == "test":
+			return "", nil
+		case reflect.DeepEqual(argv, []string{"php", omekaSVersionTarget}):
 			return "4.2.1", nil
-		case strings.Contains(joined, "SELECT CURRENT_USER()"):
+		case reflect.DeepEqual(argv, []string{omekaSVerifyDatabaseTarget}):
 			return "omeka_s@%", nil
-		case strings.Contains(joined, "-w") && strings.Contains(joined, "/admin"):
+		case argv[0] == "curl" && strings.Contains(argv[len(argv)-1], "/admin"):
 			return "302 http://127.0.0.1/admin/login", nil
-		case strings.Contains(joined, "/api/sites"):
+		case argv[0] == "curl" && strings.Contains(argv[len(argv)-1], "/api/sites"):
 			return `[]`, nil
-		case strings.Contains(joined, ".sitectl-verify"):
-			storageCommand = joined
+		case len(argv) == 4 && argv[0] == "s6-setuidgid":
+			storageCommand = append([]string(nil), argv...)
 			return "storage round trip complete", nil
 		default:
-			return "", errors.New("unexpected command: " + joined)
+			return "", errors.New("unexpected command: " + strings.Join(argv, " "))
 		}
 	}}
 
 	results := runOmekaSVerifyChecks(context.Background(), runtime, true)
 	assertAllOmekaSVerifyOK(t, results, 5)
-	for _, required := range []string{"s6-setuidgid nginx", ".sitectl-verify", "trap", "rm -f"} {
-		if !strings.Contains(storageCommand, required) {
-			t.Fatalf("disposable files probe missing %q: %s", required, storageCommand)
+	want := []string{"s6-setuidgid", "nginx", omekaSVerifyStorageTarget, omekaSStorageDisposableMode}
+	if !reflect.DeepEqual(storageCommand, want) {
+		t.Fatalf("disposable storage command = %#v, want %#v", storageCommand, want)
+	}
+}
+
+func TestOmekaSVerifyFailsClearlyForOlderTemplate(t *testing.T) {
+	t.Parallel()
+
+	runtime := &fakeOmekaSVerifyRuntime{run: func(argv []string) (string, error) {
+		if argv[0] == "test" && argv[2] == omekaSDatabaseConfigTarget {
+			return "", errors.New("missing")
 		}
+		return "", nil
+	}}
+
+	results := runOmekaSVerifyChecks(context.Background(), runtime, false)
+	if len(results) != 1 || results[0].Name != "verify:omeka-s:template-programs" || results[0].Status != sitevalidate.StatusFailed {
+		t.Fatalf("unexpected compatibility result: %+v", results)
+	}
+	for _, want := range []string{omekaSDatabaseConfigTarget, createRepo, omekaSTemplateVersion} {
+		if !strings.Contains(results[0].Detail+" "+results[0].FixHint, want) {
+			t.Fatalf("compatibility result omitted %q: %+v", want, results[0])
+		}
+	}
+	if len(runtime.calls) != 4 {
+		t.Fatalf("verification continued after missing program: %+v", runtime.calls)
 	}
 }
 
