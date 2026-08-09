@@ -16,12 +16,9 @@ import (
 )
 
 const (
-	omekaSService          = "omeka-s"
-	omekaSRoot             = "/var/www/omeka-s"
-	omekaSExpectedVersion  = "4.2.1"
-	omekaSDatabaseProbe    = `. /usr/local/share/libops/database.sh; mapfile -d '' -t database < <(php -r '$config = parse_ini_file("config/database.ini", false, INI_SCANNER_RAW); foreach (["host", "port", "user", "password", "dbname"] as $key) { $value = $config[$key] ?? ""; if (!is_string($value) || $value === "") { fwrite(STDERR, "config/database.ini " . $key . " is empty\n"); exit(2); } fwrite(STDOUT, $value . "\0"); }'); if [ "${#database[@]}" -ne 5 ]; then printf '%s\n' 'could not read database credentials from config/database.ini' >&2; exit 2; fi; database_mariadb_with_password "${database[3]}" --host="${database[0]}" --port="${database[1]}" --user="${database[2]}" --database="${database[4]}" --batch --skip-column-names --execute="SELECT CURRENT_USER();"`
-	omekaSReadOnlyStorage  = `test -r /var/www/omeka-s/files && test -w /var/www/omeka-s/files && printf '%s\n' 'storage writable'`
-	omekaSStorageRoundTrip = `probe=/var/www/omeka-s/files/.sitectl-verify-$$; cleanup() { rm -f -- "$probe"; }; trap cleanup EXIT INT TERM; printf '%s' sitectl-verify >"$probe"; test "$(cat "$probe")" = sitectl-verify; cleanup; trap - EXIT INT TERM; printf '%s\n' 'storage round trip complete'`
+	omekaSService         = "omeka-s"
+	omekaSRoot            = "/var/www/omeka-s"
+	omekaSExpectedVersion = "4.2.1"
 )
 
 type omekaSVerifyRuntime interface {
@@ -67,12 +64,16 @@ func (r *omekaSVerifyRunner) Run(cmd *cobra.Command, _ *config.Context) ([]sitev
 }
 
 func runOmekaSVerifyChecks(ctx context.Context, runtime omekaSVerifyRuntime, disposable bool) []sitevalidate.Result {
+	if missing := omekaSMissingTemplateProgram(ctx, runtime); missing != nil {
+		return []sitevalidate.Result{*missing}
+	}
+
 	results := make([]sitevalidate.Result, 0, 5)
 
-	versionOutput, versionErr := runtime.ExecCapture(ctx, []string{"php", "-r", `require "vendor/autoload.php"; require "application/Module.php"; echo \Omeka\Module::VERSION;`})
+	versionOutput, versionErr := runtime.ExecCapture(ctx, []string{"php", omekaSVersionTarget})
 	results = append(results, omekaSVersionResult(versionOutput, versionErr))
 
-	databaseOutput, databaseErr := runtime.ExecCapture(ctx, []string{"bash", "-lc", omekaSDatabaseProbe})
+	databaseOutput, databaseErr := runtime.ExecCapture(ctx, []string{omekaSVerifyDatabaseTarget})
 	results = append(results, omekaSDatabaseResult(databaseOutput, databaseErr))
 
 	migrationOutput, migrationErr := runtime.ExecCapture(ctx, []string{"curl", "--connect-timeout", "2", "--max-time", "30", "-sS", "-o", "/dev/null", "-w", "%{http_code} %{redirect_url}", "http://127.0.0.1/admin"})
@@ -81,13 +82,13 @@ func runOmekaSVerifyChecks(ctx context.Context, runtime omekaSVerifyRuntime, dis
 	apiOutput, apiErr := runtime.ExecCapture(ctx, []string{"curl", "--connect-timeout", "2", "--max-time", "30", "-fsS", "-H", "Accept: application/json", "http://127.0.0.1/api/sites?per_page=1"})
 	results = append(results, omekaSAPIResult(apiOutput, apiErr))
 
-	storageScript := omekaSReadOnlyStorage
+	storageMode := omekaSStorageReadOnlyMode
 	storageDetail := "files storage is writable by the Omeka S service account"
 	if disposable {
-		storageScript = omekaSStorageRoundTrip
+		storageMode = omekaSStorageDisposableMode
 		storageDetail = "files storage completed a reversible write/read/delete round trip"
 	}
-	_, storageErr := runtime.ExecCapture(ctx, []string{"s6-setuidgid", "nginx", "sh", "-ec", storageScript})
+	_, storageErr := runtime.ExecCapture(ctx, []string{"s6-setuidgid", "nginx", omekaSVerifyStorageTarget, storageMode})
 	if storageErr != nil {
 		results = append(results, omekaSVerifyFailed("verify:omeka-s:files", storageErr.Error(), "repair ownership and permissions for /var/www/omeka-s/files"))
 	} else {
@@ -95,6 +96,24 @@ func runOmekaSVerifyChecks(ctx context.Context, runtime omekaSVerifyRuntime, dis
 	}
 
 	return results
+}
+
+func omekaSMissingTemplateProgram(ctx context.Context, runtime omekaSVerifyRuntime) *sitevalidate.Result {
+	for _, program := range omekaSTemplatePrograms {
+		probe := "-r"
+		if program.executable {
+			probe = "-x"
+		}
+		if _, err := runtime.ExecCapture(ctx, []string{"test", probe, program.target}); err != nil {
+			result := omekaSVerifyFailed(
+				"verify:omeka-s:template-programs",
+				fmt.Sprintf("required template program %s is missing or unusable", program.target),
+				fmt.Sprintf("update this site checkout from %s at %s or newer before using this plugin release", createRepo, omekaSTemplateVersion),
+			)
+			return &result
+		}
+	}
+	return nil
 }
 
 func omekaSVersionResult(output string, commandErr error) sitevalidate.Result {
