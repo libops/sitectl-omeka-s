@@ -14,6 +14,9 @@ func TestCreateDefinitionLifecycleContract(t *testing.T) {
 	if spec.DockerComposeRepo != createRepo || spec.DockerComposeBranch != omekaSTemplateVersion {
 		t.Fatalf("unexpected immutable template source: %s@%s", spec.DockerComposeRepo, spec.DockerComposeBranch)
 	}
+	if spec.DockerComposeBranch != "v1.2.1" {
+		t.Fatalf("Omeka S template revision = %q, want immutable v1.2.1", spec.DockerComposeBranch)
+	}
 	if len(spec.Images) != 1 || spec.Images[0].Image != "libops/omeka-s:4.2.1-php84" || spec.Images[0].BuildPolicy != plugin.BuildPolicyAlways {
 		t.Fatalf("unexpected Omeka S image contract: %+v", spec.Images)
 	}

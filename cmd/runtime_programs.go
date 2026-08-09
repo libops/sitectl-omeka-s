@@ -1,7 +1,7 @@
 package cmd
 
 const (
-	omekaSTemplateVersion = "v1.2.0"
+	omekaSTemplateVersion = "v1.2.1"
 
 	omekaSRolloutPreflightSource  = "scripts/sitectl-rollout-preflight.sh"
 	omekaSRolloutPreflightCommand = "bash " + omekaSRolloutPreflightSource

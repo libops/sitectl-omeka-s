@@ -140,7 +140,7 @@ func runOmekaSAPIRequest(s *sitectlplugin.SDK, cmd *cobra.Command, method, path 
 		args = append(args, "--data-binary", "@"+opts.file)
 	}
 	args = append(args, requestURL)
-	return s.RunActiveComposeProjectCommand(cmd, sitectlplugin.ShellJoin(args))
+	return s.RunActiveComposeProjectArgv(cmd, args)
 }
 
 func buildAPIURL(baseURL, path string, queryPairs []string) (string, error) {
